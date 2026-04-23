@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tobehonest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Newsreader:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Special+Elite&family=JetBrains+Mono:wght@400;500;700&family=Stardos+Stencil:wght@400;700&family=Oldenburg&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+@keyframes shakeX { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="store.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="HomePage.jsx"></script>
+<script type="text/babel" src="Pages.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const TICKER = [
+  'VOL. I — 2026',
+  'TOBEHONEST — THE FLAGSHIP — RAE / AGE / OLD',
+  'ANYONE CAN START A PAPER — CLAIM YOUR MASTHEAD',
+  'ANONYMOUS. ENCRYPTED. UNAPOLOGETIC.',
+];
+
+function App() {
+  window.useStore();
+  const [route, setRoute] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tbh_route_v2')) || { view: 'home', paperId: 'tobehonest' }; }
+    catch(e) { return { view: 'home', paperId: 'tobehonest' }; }
+  });
+  const session = window.getSession();
+
+  const nav = (r) => {
+    const next = { ...r };
+    if (!next.paperId && session) next.paperId = session.paperId;
+    if (!next.paperId && route.paperId) next.paperId = route.paperId;
+    if (!next.paperId) next.paperId = 'tobehonest';
+    setRoute(next);
+    try { localStorage.setItem('tbh_route_v2', JSON.stringify(next)); } catch(e) {}
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const activePaperId = route.paperId || 'tobehonest';
+  const activePaper = window.getPaper(activePaperId) || window.getPaper('tobehonest');
+
+  return (
+    <div data-screen-label={'tobehonest — ' + route.view}>
+      <window.Ticker items={TICKER} />
+      <window.Masthead nav={nav} route={route} session={session} paper={activePaper} />
+
+      {route.view === 'home' && (
+        <window.HomePage
+          paperId={activePaperId}
+          nav={nav}
+          session={session}
+          onWelcomeBrowse={() => nav({ view: 'discover' })}
+          onWelcomeWrite={() => nav({ view: 'create' })}
+        />
+      )}
+      {route.view === 'discover' && <window.DiscoverPage nav={nav} />}
+      {route.view === 'archive' && <window.ArchivePage paperId={activePaperId} editorId={route.editorId} nav={nav} />}
+      {route.view === 'post' && <window.PostView postId={route.postId} nav={nav} session={session} />}
+      {route.view === 'composer' && session && <window.Composer session={session} nav={nav} />}
+      {route.view === 'composer' && !session && <window.LoginPicker paperId={activePaperId} nav={nav} />}
+      {route.view === 'login-pick' && <window.LoginPicker paperId={activePaperId} nav={nav} />}
+      {route.view === 'login' && (
+        <window.LoginScreen
+          paperId={route.paperId}
+          editorId={route.editorId}
+          nav={nav}
+          onSuccess={() => nav({ view: 'composer', paperId: route.paperId })}
+        />
+      )}
+      {route.view === 'create' && <window.CreatePaper nav={nav} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
